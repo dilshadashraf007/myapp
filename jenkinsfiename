@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Clone') {
+            steps {
+                git branch: 'main', url: 'https://github.com/dilshadashraf007/myapp.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t python-hello-world .'
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                sh 'docker run --rm python-hello-world'
+            }
+        }
+    }
+}
