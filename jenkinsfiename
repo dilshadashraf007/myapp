@@ -10,13 +10,13 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t python-hello-world .'
+                bat 'docker build -t python-hello-world .'
             }
         }
 
         stage('Run Container') {
             steps {
-                sh 'docker run --rm python-hello-world'
+                bat 'docker run --rm python-hello-world'
             }
         }
     }
