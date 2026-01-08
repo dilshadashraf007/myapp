@@ -7,7 +7,7 @@ pipeline {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/dilshadashraf007/myapp.git',
-                    credentialsId: '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'
+                    credentialsId: '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'
             }
         }
 
