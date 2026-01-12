@@ -7,7 +7,7 @@ pipeline {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/dilshadashraf007/myapp.git',
-                    credentialsId: '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'
+                    credentialsId: 'my-token'
             }
         }
 
@@ -17,10 +17,15 @@ pipeline {
             }
         }
 
-        stage('Run Container') {
+        stage('Run on Docker') {
             steps {
-                bat 'docker run --rm python-hello-world'
+                bat '''
+                docker stop python-app || exit 0
+                docker rm python-app || exit 0
+                docker run -d --name python-app -p 5000:5000 python-hello-world
+                '''
             }
         }
     }
 }
+
