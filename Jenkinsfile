@@ -1,53 +1,44 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "python-hello-world"
+    }
+
     stages {
 
         stage('Clone') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/dilshadashraf007/myapp.git',
-                    credentialsId: 'git'
+                    url: 'https://github.com/dilshadashraf007/myapp.git'
+                    // credentialsId removed since repo is public
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t python-hello-world .'
-            }
-        }
-
-        stage('Run on Docker') {
-            steps {
-                bat '''
-                docker rm -f python-app 2>nul
-                docker run -d --name python-app -p 5000:5000 python-hello-world
-                '''
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'docker',
-                    usernameVariable: 'dilshadashraf007',
-                    passwordVariable: 'dckr_pat_-YgmSrDQG599-UK1ARunjXrWNr0'
+                    credentialsId: 'docker', // ID of your Jenkins Docker credential
+                    usernameVariable: 'dilshadashraf007', // variable name for username
+                    passwordVariable: 'docker password'  // 
                 )]) {
-                    bat '''
-                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
-                    docker tag python-hello-world %DOCKER_USER%/python-hello-world:latest
-                    docker push %DOCKER_USER%/python-hello-world:latest
-                    '''
-                }
-            }
-        }
+                    // Debug: make sure variables exist
+                    bat 'echo DOCKER_USER=%DOCKER_USER%'
+                    bat 'echo length of DOCKER_PASS=%DOCKER_PASS:~0,1%' 
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                bat '''
-                kubectl set image deployment/python-app-deployment python-app=%DOCKER_USER%/python-hello-world:latest --record
-                kubectl rollout status deployment/python-app-deployment
-                '''
+                    // Use pipe login for Windows to handle special characters
+                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+
+                    // Tag and push
+                    bat 'docker tag %IMAGE_NAME% %DOCKER_USER%/%IMAGE_NAME%:latest'
+                    bat 'docker push %DOCKER_USER%/%IMAGE_NAME%:latest'
+                }
             }
         }
     }
