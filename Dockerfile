@@ -9,3 +9,6 @@ COPY app.py .
 
 # Run the app
 CMD ["python", "app.py"]
+
+containers:
+- name: python-app
