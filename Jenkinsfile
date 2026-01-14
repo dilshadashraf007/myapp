@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "dilshad007/myapp"
-        TAG = "latest"
+        IMAGE_NAME = "dockerhubusername/myapp"
+        IMAGE_TAG  = "latest"
     }
 
     stages {
@@ -17,28 +17,50 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t $IMAGE_NAME:$TAG ."
+                bat """
+                docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
+                """
             }
         }
 
-        stage('Push Image to Docker Hub') {
+        stage('Docker Login') {
             steps {
-                withCredentials([string(credentialsId: 'dockerhub-pass', variable: 'DOCKER_PASS')]) {
-                    sh """
-                      echo $DOCKER_PASS | docker login -u dilshad007 --password-stdin
-                      docker push $IMAGE_NAME:$TAG
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker',
+                    usernameVariable: 'dilshadashraf007',
+                    passwordVariable: 'dckr_pat_4-IvbT4FLVxuyj-zYsRieb-dBSA'
+                )]) {
+                    bat """
+                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
                     """
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Push Image to Docker Hub') {
             steps {
-                sh """
-                  kubectl apply -f k8s/deployment.yaml
-                  kubectl apply -f k8s/service.yaml
+                bat """
+                docker push %IMAGE_NAME%:%IMAGE_TAG%
                 """
             }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                bat """
+                kubectl apply -f deployment.yaml
+                kubectl apply -f service.yaml
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Pipeline completed successfully"
+        }
+        failure {
+            echo "❌ Pipeline failed"
         }
     }
 }
