@@ -18,7 +18,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 bat """
-                docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
+               docker push dilshadashraf007/python-app:tagname.
                 """
             }
         }
