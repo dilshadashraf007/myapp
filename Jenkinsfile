@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         IMAGE_NAME = "dilshadashraf007/python-app"
-        IMAGE_TAG  = "latest"
     }
 
     stages {
@@ -17,9 +16,8 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat """
-               docker push dilshadashraf007/python-app:tagname.
-                """
+                bat "docker build -t %IMAGE_NAME%:%BUILD_NUMBER% ."
+                bat "docker tag %IMAGE_NAME%:%BUILD_NUMBER% %IMAGE_NAME%:latest"
             }
         }
 
@@ -27,32 +25,35 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'docker',
-                    usernameVariable: 'dilshadashraf007',
-                    passwordVariable: 'dckr_pat_4-IvbT4FLVxuyj-zYsRieb-dBSA'
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    bat """
+                    bat '''
                     echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
-                    """
+                    '''
                 }
             }
         }
 
-        stage('Push Image to Docker Hub') {
-            steps {
-                bat """
-                docker push %IMAGE_NAME%:%IMAGE_TAG%
-                """
-            }
+      stage('Push Docker Image') {
+    steps {
+        bat "docker push %IMAGE_NAME%:%BUILD_NUMBER%"
+        bat "docker push %IMAGE_NAME%:latest"
+    }
+}
+   stage('Deploy to Kubernetes') {
+    steps {
+        withCredentials([file(credentialsId: env.KUBE_CONFIG_CREDENTIALS, variable: 'KUBECONFIG_FILE')]) {
+            bat '''
+            set KUBECONFIG=%KUBECONFIG_FILE%
+            kubectl create deployment python-app-deployment --image=%IMAGE_NAME%:%BUILD_NUMBER% --dry-run=client -o yaml | kubectl apply -f -
+            kubectl expose deployment python-app-deployment --type=LoadBalancer --port=80 --target-port=80 --dry-run=client -o yaml | kubectl apply -f -
+            kubectl rollout status deployment/python-app-deployment
+            '''
         }
+    }
+}
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                bat """
-                kubectl apply -f deployment.yaml
-                kubectl apply -f service.yaml
-                """
-            }
-        }
     }
 
     post {
