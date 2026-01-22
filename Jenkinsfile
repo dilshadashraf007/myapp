@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         IMAGE_NAME = "dilshadashraf007/python-app"
+        KUBE_CONFIG_CREDENTIALS = "k8s"
+        NODE_PORT = "30007" // Set the NodePort your service uses
     }
 
     stages {
@@ -44,17 +46,22 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([
-                    file(credentialsId: 'k8s', variable: 'KUBECONFIG')
-                ]) {
+                withCredentials([file(credentialsId: 'k8s', variable: 'KUBECONFIG')]) {
                     bat '''
-                        kubectl config get-contexts
                         kubectl config use-context docker-desktop
 
                         kubectl apply -f k8s\\deployment.yaml
+                        kubectl apply -f k8s\\service.yaml
                         kubectl rollout status deployment/python-app-deployment
                     '''
                 }
+            }
+        }
+
+        stage('Show Application URL') {
+            steps {
+                echo "🌐 Your application is now deployed!"
+                echo "Open in browser: http://localhost:%NODE_PORT%"
             }
         }
     }
