@@ -29,31 +29,34 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     bat '''
-                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                        echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
                     '''
                 }
             }
         }
 
-      stage('Push Docker Image') {
-    steps {
-        bat "docker push %IMAGE_NAME%:%BUILD_NUMBER%"
-        bat "docker push %IMAGE_NAME%:latest"
-    }
-}
-   stage('Deploy to Kubernetes') {
-    steps {
-        withCredentials([file(credentialsId: env.KUBE_CONFIG_CREDENTIALS, variable: 'KUBECONFIG_FILE')]) {
-            bat '''
-            set KUBECONFIG=%KUBECONFIG_FILE%
-            kubectl create deployment python-app-deployment --image=%IMAGE_NAME%:%BUILD_NUMBER% --dry-run=client -o yaml | kubectl apply -f -
-            kubectl expose deployment python-app-deployment --type=LoadBalancer --port=80 --target-port=80 --dry-run=client -o yaml | kubectl apply -f -
-            kubectl rollout status deployment/python-app-deployment
-            '''
+        stage('Push Docker Image') {
+            steps {
+                bat "docker push %IMAGE_NAME%:%BUILD_NUMBER%"
+                bat "docker push %IMAGE_NAME%:latest"
+            }
         }
-    }
-}
 
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'k8s', variable: 'KUBECONFIG')
+                ]) {
+                    bat '''
+                        kubectl config get-contexts
+                        kubectl config use-context docker-desktop
+
+                        kubectl apply -f k8s\\deployment.yaml
+                        kubectl rollout status deployment/python-app-deployment
+                    '''
+                }
+            }
+        }
     }
 
     post {
