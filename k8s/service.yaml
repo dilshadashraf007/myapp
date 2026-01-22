@@ -3,9 +3,10 @@ kind: Service
 metadata:
   name: myapp-service
 spec:
-  type: NodePort
+  type: NodePort          # expose on host
+  selector:
+    app: python-app       # must match deployment labels
   ports:
-  - port: 80
-    targetPort: 80
-    nodePort: 30007
-
+    - port: 80            # service port
+      targetPort: 80      # container port
+      nodePort: 30007     # host port
